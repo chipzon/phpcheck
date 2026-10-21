@@ -23,14 +23,14 @@ even though the number looks old.
 curl -O https://raw.githubusercontent.com/chipzon/phpcheck/main/phpcheck.sh
 # read it first — it's ~90 lines — then:
 bash phpcheck.sh          # human-readable report
-bash phpcheck.sh --json   # one JSON object, for piping into report.html
+bash phpcheck.sh --json   # one JSON object, for piping into index.html
 ```
 
 Exit code: `0` patched · `1` NOT patched · `2` needs manual verification.
 
 ## The report page
 
-`report.html` is a self-contained page that turns `phpcheck.sh --json` output
+`index.html` is a self-contained page that turns `phpcheck.sh --json` output
 into a clean, shareable patch report (good for showing a client "you're safe").
 Open it locally or host it anywhere — it's one static file, scans nothing, and
 only renders the JSON you paste in.
