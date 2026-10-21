@@ -1,0 +1,346 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>phpcheck</title>
+<style>
+  /* Layout: single centered column, ~680px. Ops/terminal identity — Plex Mono for
+     machine data, Plex Sans for prose. Status drives color; accent is a deliberate teal. */
+  :root {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --surface-2: #eef1f4;
+    --fg: #1a2230;
+    --muted: #5c6b7a;
+    --line: #d9e0e7;
+    --accent: #0f7b8a;        /* deliberate teal, not acid-green */
+    --accent-ink: #0a5み;
+    --ok: #1f8f4e;
+    --ok-bg: #e7f6ec;
+    --bad: #c23b3b;
+    --bad-bg: #fbeaea;
+    --warn: #b5791a;
+    --warn-bg: #fbf2e2;
+    --shadow: 0 1px 2px rgba(20,30,45,.06), 0 8px 24px rgba(20,30,45,.07);
+    --sans: "IBM Plex Sans", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1319;
+      --surface: #161d26;
+      --surface-2: #1d2630;
+      --fg: #e6ecf2;
+      --muted: #9aa8b6;
+      --line: #2a3640;
+      --accent: #3fb6c6;
+      --ok: #52c47e;
+      --ok-bg: #16301f;
+      --bad: #e9736f;
+      --bad-bg: #351a1a;
+      --warn: #e0a84a;
+      --warn-bg: #332715;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1319;
+    --surface: #161d26;
+    --surface-2: #1d2630;
+    --fg: #e6ecf2;
+    --muted: #9aa8b6;
+    --line: #2a3640;
+    --accent: #3fb6c6;
+    --ok: #52c47e;
+    --ok-bg: #16301f;
+    --bad: #e9736f;
+    --bad-bg: #351a1a;
+    --warn: #e0a84a;
+    --warn-bg: #332715;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 680px;
+    margin: 0 auto;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 40px 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  header { display: flex; flex-direction: column; gap: 10px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .glyph {
+    width: 30px; height: 30px; border-radius: 7px;
+    background: var(--accent); color: #fff;
+    display: grid; place-items: center;
+    font-family: var(--mono); font-weight: 600; font-size: 16px;
+    flex: none;
+  }
+  .brand h1 { font-size: 20px; margin: 0; letter-spacing: -0.01em; font-weight: 600; }
+  .brand .ph { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .tagline { color: var(--muted); font-size: 15px; max-width: 58ch; margin: 0; }
+  .tagline strong { color: var(--fg); font-weight: 600; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+  }
+  .step-label {
+    font-family: var(--mono); font-size: 11px; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--accent); font-weight: 600;
+    margin: 0 0 12px;
+  }
+  h2 { font-size: 16px; margin: 0 0 6px; font-weight: 600; }
+  p.hint { color: var(--muted); font-size: 13.5px; margin: 0 0 14px; }
+
+  .cmd {
+    position: relative;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 13px 44px 13px 14px;
+    font-family: var(--mono); font-size: 13px;
+    color: var(--fg);
+    overflow-x: auto;
+    white-space: pre;
+    min-width: 0;
+  }
+  .cmd + .cmd { margin-top: 8px; }
+  .copy {
+    position: absolute; top: 7px; right: 7px;
+    border: 1px solid var(--line); background: var(--surface);
+    color: var(--muted); border-radius: 6px; cursor: pointer;
+    font-family: var(--mono); font-size: 11px; padding: 4px 8px;
+    line-height: 1;
+  }
+  .copy:hover { color: var(--fg); border-color: var(--accent); }
+  .copy:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  textarea {
+    width: 100%; min-height: 108px; resize: vertical;
+    background: var(--surface-2); color: var(--fg);
+    border: 1px solid var(--line); border-radius: 9px;
+    font-family: var(--mono); font-size: 13px; padding: 12px;
+    line-height: 1.45;
+  }
+  textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+  button.go {
+    background: var(--accent); color: #fff; border: 0;
+    border-radius: 8px; padding: 10px 18px; font-family: var(--sans);
+    font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  button.go:hover { filter: brightness(1.06); }
+  button.go:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+  .linkish {
+    background: none; border: 0; color: var(--muted); cursor: pointer;
+    font-family: var(--sans); font-size: 13px; text-decoration: underline;
+    text-underline-offset: 2px; padding: 4px;
+  }
+  .linkish:hover { color: var(--fg); }
+  .err { color: var(--bad); font-size: 13px; margin-top: 10px; min-height: 1em; }
+
+  /* ---- report ---- */
+  .report { padding: 0; overflow: hidden; }
+  .report.is-example { position: relative; }
+  .ribbon {
+    font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted);
+    background: var(--surface-2); border-bottom: 1px solid var(--line);
+    padding: 6px 20px;
+  }
+  .verdict {
+    display: flex; align-items: center; gap: 14px;
+    padding: 22px 20px;
+  }
+  .mark {
+    width: 46px; height: 46px; border-radius: 50%; flex: none;
+    display: grid; place-items: center; font-size: 26px; font-weight: 700;
+    font-family: var(--mono);
+  }
+  .verdict .vtext { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .verdict .vtitle { font-size: 19px; font-weight: 600; letter-spacing: -.01em; }
+  .verdict .vsub { font-size: 13px; color: var(--muted); }
+  .v-ok    .mark { background: var(--ok-bg); color: var(--ok); }
+  .v-ok    .vtitle { color: var(--ok); }
+  .v-bad   .mark { background: var(--bad-bg); color: var(--bad); }
+  .v-bad   .vtitle { color: var(--bad); }
+  .v-warn  .mark { background: var(--warn-bg); color: var(--warn); }
+  .v-warn  .vtitle { color: var(--warn); }
+
+  .detail { padding: 0 20px 18px; font-size: 14px; color: var(--fg); }
+  dl.facts {
+    margin: 0; padding: 16px 20px; border-top: 1px solid var(--line);
+    display: grid; grid-template-columns: auto 1fr; gap: 9px 16px;
+    font-size: 13px;
+  }
+  dl.facts dt { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  dl.facts dd { margin: 0; font-family: var(--mono); word-break: break-word; }
+  .pill {
+    display: inline-block; font-family: var(--mono); font-size: 11px;
+    padding: 1px 7px; border-radius: 20px; border: 1px solid var(--line);
+  }
+  .pill.yes { color: var(--ok); border-color: var(--ok); }
+  .pill.no { color: var(--muted); }
+  .report-foot {
+    border-top: 1px solid var(--line); padding: 12px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 10px; flex-wrap: wrap;
+    font-size: 11.5px; color: var(--muted); font-family: var(--mono);
+  }
+  footer.site {
+    color: var(--muted); font-size: 12px; text-align: center;
+    border-top: 1px solid var(--line); padding-top: 20px;
+  }
+  footer.site code { font-family: var(--mono); color: var(--fg); }
+  @media (max-width: 440px) {
+    dl.facts { grid-template-columns: 1fr; gap: 3px; }
+    dl.facts dd { margin-bottom: 8px; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <div class="glyph">p</div>
+      <div>
+        <h1>phpcheck</h1>
+        <div class="ph">chipzon/phpcheck</div>
+      </div>
+    </div>
+    <p class="tagline">Verify a server is actually patched against <strong>php2shell</strong> (CVE-2026-109618 / 109619) — <strong>including the distro-backport case</strong> a version number can't show. You run the check on your own server; nothing you paste here leaves your browser.</p>
+  </header>
+
+  <section class="card">
+    <p class="step-label">Step 1 · on your server</p>
+    <h2>Run the check</h2>
+    <p class="hint">Download it, read it (it's ~90 lines), then run it. It sends no exploit and contacts no remote host — it reads <span style="font-family:var(--mono)">php -v</span> and the installed package's changelog.</p>
+    <div class="cmd" id="c1">curl -O https://raw.githubusercontent.com/chipzon/phpcheck/main/phpcheck.sh
+bash phpcheck.sh --json<button class="copy" data-for="c1">copy</button></div>
+  </section>
+
+  <section class="card">
+    <p class="step-label">Step 2 · here</p>
+    <h2>Paste the JSON output</h2>
+    <p class="hint">Paste what the command printed. You get a clean report you can screenshot or send to a client.</p>
+    <textarea id="in" spellcheck="false" aria-label="phpcheck JSON output"></textarea>
+    <div class="row">
+      <button class="go" id="run">Build report</button>
+      <button class="linkish" id="demo">Load an example</button>
+    </div>
+    <div class="err" id="err" role="alert"></div>
+  </section>
+
+  <div id="out"></div>
+
+  <footer class="site">
+    Open source · <code>chipzon/phpcheck</code> · self-check only, by design — it never scans other people's servers.
+  </footer>
+</div>
+
+<script>
+  const SAMPLE = {
+    "verdict": "PATCHED", "exit": 0, "php_version": "8.1.2-1ubuntu2.21",
+    "sapi": "fpm-fcgi", "branch": "8.1", "source": "deb",
+    "backport_cve_in_changelog": true,
+    "detail": "Version looks old (8.1.2) but the installed package backported the fix — a php2shell CVE id is in its changelog."
+  };
+
+  function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  function classify(v){
+    const s = String(v || '').toUpperCase();
+    if (s === 'PATCHED') return 'ok';
+    if (s === 'NOT PATCHED') return 'bad';
+    return 'warn'; // VERIFY, NO_PHP, anything else
+  }
+  const MARK = { ok: '✓', bad: '✗', warn: '!' };
+  const TITLE = { ok: 'Patched', bad: 'Not patched', warn: 'Needs verification' };
+
+  function render(data, isExample){
+    const kind = classify(data.verdict);
+    const when = new Date().toLocaleString(undefined, {dateStyle:'medium', timeStyle:'short'});
+    const backport = data.backport_cve_in_changelog === true || data.backport_cve_in_changelog === 'true';
+    const bp = backport
+      ? '<span class="pill yes">confirmed in changelog</span>'
+      : '<span class="pill no">not found</span>';
+
+    const facts = [
+      ['php', esc(data.php_version || '—')],
+      ['sapi', esc(data.sapi || '—')],
+      ['branch', esc(data.branch || '—')],
+      ['source', esc(data.source || '—')],
+      ['backport', bp],
+    ].map(([k,v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+
+    return `
+      <section class="card report v-${kind} ${isExample ? 'is-example' : ''}">
+        ${isExample ? '<div class="ribbon">Example report</div>' : ''}
+        <div class="verdict">
+          <div class="mark">${MARK[kind]}</div>
+          <div class="vtext">
+            <div class="vtitle">${esc(TITLE[kind])}</div>
+            <div class="vsub">php2shell · CVE-2026-109618 / 109619 · checked ${esc(when)}</div>
+          </div>
+        </div>
+        <div class="detail">${esc(data.detail || '')}</div>
+        <dl class="facts">${facts}</dl>
+        <div class="report-foot">
+          <span>phpcheck</span>
+          <span>${backport ? 'backport-aware verification' : 'version + changelog verification'}</span>
+        </div>
+      </section>`;
+  }
+
+  const $ = id => document.getElementById(id);
+  const out = $('out'), errEl = $('err'), input = $('in');
+
+  function build(isExample){
+    errEl.textContent = '';
+    const raw = input.value.trim();
+    if (!raw){ errEl.textContent = 'Paste the JSON the command printed, or load the example.'; out.innerHTML=''; return; }
+    let data;
+    try { data = JSON.parse(raw); }
+    catch(e){ errEl.textContent = "That doesn't parse as JSON. Copy the whole line the command printed (it starts with { and ends with })."; out.innerHTML=''; return; }
+    if (typeof data !== 'object' || data === null || !('verdict' in data)){
+      errEl.textContent = 'That JSON is missing a "verdict" field — make sure you ran phpcheck.sh --json.'; out.innerHTML=''; return;
+    }
+    out.innerHTML = render(data, isExample);
+    out.firstElementChild.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+
+  $('run').addEventListener('click', () => build(false));
+  $('demo').addEventListener('click', () => { input.value = JSON.stringify(SAMPLE, null, 2); build(true); });
+
+  // copy buttons
+  document.querySelectorAll('.copy').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const host = document.getElementById(btn.dataset.for);
+      const text = host.childNodes[0].nodeValue.trim();
+      const done = () => { const o = btn.textContent; btn.textContent = 'copied'; setTimeout(()=>btn.textContent=o, 1200); };
+      try { await navigator.clipboard.writeText(text); done(); }
+      catch(e){
+        const r = document.createRange(); r.selectNodeContents(host);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      }
+    });
+  });
+
+  // open in a working state
+  input.value = JSON.stringify(SAMPLE, null, 2);
+  build(true);
+</script>
